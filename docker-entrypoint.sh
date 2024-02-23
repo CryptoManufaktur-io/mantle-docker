@@ -54,7 +54,7 @@ if [ -n "${SNAPSHOT}" ] && [ ! -d "/var/lib/op-geth/geth/chaindata" ]; then
   __dont_rm=0
   cd /var/lib/op-geth/snapshot
   eval "__url=${SNAPSHOT}"
-  aria2c -c -x6 -s6 --auto-file-renaming=false --conditional-get=true --allow-overwrite=true "${__url}"
+  aria2c -c -x16 -s16 --auto-file-renaming=false --conditional-get=true --allow-overwrite=true "${__url}"
   filename=$(echo "${__url}" | awk -F/ '{print $NF}')
   tar xzvf "${filename}" -C /var/lib/op-geth/geth
   if [ "${__dont_rm}" -eq 0 ]; then
