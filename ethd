@@ -280,9 +280,9 @@ check_disk_space() {
 
 # Literal match intended
 # shellcheck disable=SC2076
-    if [[ "${value}" =~ "optimism.yml" ]] && [[ "${__free_space}" -lt 104857600 ]]; then
+    if [[ "${value}" =~ "mantle.yml" ]] && [[ "${__free_space}" -lt 104857600 ]]; then
         echo ""
-        echo "You are running op-geth and have less than 100 GiB of free disk space."
+        echo "You are running l2-geth and have less than 100 GiB of free disk space."
         echo "If Avail reads 40 GiB or more, prune with $__me prune-geth:"
         echo ""
         df -h "${__docker_dir}"
@@ -646,7 +646,7 @@ prune-geth() {
         rpc_port="${BASH_REMATCH[1]}"
     fi
 
-    sync_status=$(docompose exec -T op-geth wget -qO- "http://localhost:$rpc_port" --header 'Content-Type: application/json' --post-data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}')
+    sync_status=$(docompose exec -T l2-geth wget -qO- "http://localhost:$rpc_port" --header 'Content-Type: application/json' --post-data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}')
     exitstatus=$?
     if [ $exitstatus -ne 0 ]; then
         echo "Unable to connect to Geth: Is it running?"
@@ -663,7 +663,7 @@ prune-geth() {
         exit 130
     fi
 
-    node_logs=$(docompose logs --no-color --tail 1000 op-geth)
+    node_logs=$(docompose logs --no-color --tail 1000 l2-geth)
     if [[ "${node_logs}" =~ "snapshot generation" && ! "${node_logs}" =~ "Generated state" ]]; then
         echo "Geth has not finished generating a state snapshot yet, aborting."
         exit 130
@@ -730,7 +730,7 @@ help() {
     echo "  terminate"
     echo "     stops the ${__app_name} and destroys all data stores"
     echo "  prune-geth"
-    echo "     stops the op-geth execution client and prunes its DB. This takes about 4-5 hours"
+    echo "     stops the l2-geth execution client and prunes its DB. This takes about 4-5 hours"
     echo "  help"
     echo "      print this help screen"
     echo
