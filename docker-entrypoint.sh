@@ -83,21 +83,16 @@ elif [ ! -d "/var/lib/op-geth/geth/chaindata" ]; then # Init from genesis
   geth ${__verbosity} init /var/lib/op-geth/genesis.json --datadir /var/lib/op-geth
 fi
 
-if [ -f /var/lib/op-geth/prune-marker ]; then
-  rm -f /var/lib/op-geth/prune-marker
-  exec "$@" snapshot prune-state
-else
-  # wait for the dtl to be up, else geth will crash if it cannot connect
-  curl \
-    --fail \
-    --show-error \
-    --silent \
-    --output /dev/null \
-    --retry-connrefused \
-    --retry $RETRIES \
-    --retry-delay 1 \
-    ${ROLLUP_CLIENT_HTTP}/eth/syncing
+# wait for the dtl to be up, else geth will crash if it cannot connect
+curl \
+  --fail \
+  --show-error \
+  --silent \
+  --output /dev/null \
+  --retry-connrefused \
+  --retry $RETRIES \
+  --retry-delay 1 \
+  ${ROLLUP_CLIENT_HTTP}/eth/syncing
 # Word splitting is desired for the command line parameters
 # shellcheck disable=SC2086
-  exec "$@" ${__verbosity} ${EL_EXTRAS}
-fi
+exec "$@" ${__verbosity} ${EL_EXTRAS}

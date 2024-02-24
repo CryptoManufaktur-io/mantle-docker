@@ -112,14 +112,5 @@ services:
       - metrics.path=/debug/metrics/prometheus
       - metrics.port=6060
 
-  set-prune-marker:
-    profiles: ["tools"]
-    image: alpine:3
-    restart: "no"
-    volumes:
-      - mantle-data:/var/lib/op-geth
-    entrypoint: ["/bin/sh","-c"]
-    command: /bin/sh
-
 volumes:
   mantle-data:
