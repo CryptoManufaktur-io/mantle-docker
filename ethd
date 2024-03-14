@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 __project_name="Mantle Docker"
 __app_name="Mantle node"
-__sample_service="l2-geth"
+__sample_service="op-geth"
 __docker_exe="docker"
 __compose_exe="docker compose"
 __compose_upgraded=0
@@ -420,8 +420,9 @@ envmigrate() {
         return
     fi
 
-    ALL_VARS=( COMPOSE_FILE SNAPSHOT L1_RPC SEQUENCER GENESIS DTL EL_EXTRAS LOG_LEVEL L2GETH_DOCKER_TAG \
-            DOMAIN RPC_HOST RPC_LB WS_HOST WS_LB RPC_PORT WS_PORT )
+    ALL_VARS=( COMPOSE_FILE SNAPSHOT L1_RPC GENESIS EL_EXTRAS CL_EXTRAS LOG_LEVEL L2GETH_DOCKER_TAG \
+            OPGETH_DOCKER_TAG OPNODE_DOCKER_TAG LEGACY DOMAIN RPC_HOST RPC_LB WS_HOST WS_LB RPC_PORT WS_PORT \
+            OPNODE_HOST OPNODE_P2P_PORT DA_RETRIEVER DA_GRAPH L2_BACKUP_RPC OPNODE_STATIC_PEER OPNODE_RPC_PORT )
     OLD_VARS=( )
     NEW_VARS=( )
 
@@ -576,7 +577,9 @@ version() {
     # Client versions
     case "${value}" in
         *mantle.yml* )
-            docompose exec l2-geth geth version
+            docompose exec op-geth geth version
+            echo
+            docompose exec op-node op-node --version
             ;;&
     esac
 }

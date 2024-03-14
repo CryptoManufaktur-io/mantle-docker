@@ -1,18 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Secret generation is not needed on mainnet, but keeping it here in case Mantle moves to op-node/op-geth
-if [[ ! -f /var/lib/op-geth/ee-secret/jwtsecret ]]; then
-  echo "Generating JWT secret"
-  __secret1=$(head -c 8 /dev/urandom | od -A n -t u8 | tr -d '[:space:]' | sha256sum | head -c 32)
-  __secret2=$(head -c 8 /dev/urandom | od -A n -t u8 | tr -d '[:space:]' | sha256sum | head -c 32)
-  echo -n "${__secret1}""${__secret2}" > /var/lib/op-geth/ee-secret/jwtsecret
-fi
-
-if [[ -O "/var/lib/op-geth/ee-secret/jwtsecret" ]]; then
-  chmod 666 /var/lib/op-geth/ee-secret/jwtsecret
-fi
-
 # Set verbosity
 shopt -s nocasematch
 case ${LOG_LEVEL} in

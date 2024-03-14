@@ -1,10 +1,3 @@
-x-healthcheck: &healthcheck
-  test: [ "CMD", "curl", "-sf", "http://localhost:${RPC_PORT}" ]
-  interval: 5s
-  timeout: 5s
-  retries: 3
-  start_period: 30s
-
 x-logging: &logging
   logging:
     driver: json-file
@@ -14,80 +7,67 @@ x-logging: &logging
       tag: '{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}'
 
 services:
-  l2-geth:
+  op-geth:
     restart: "unless-stopped"
     build:
-      context: .
+      context: ./op-geth
       dockerfile: Dockerfile.binary
       args:
-        - DOCKER_TAG=${L2GETH_DOCKER_TAG}
-    image: l2-geth:mantle
+        - DOCKER_TAG=${OPGETH_DOCKER_TAG}
+    image: op-geth:mantle
     pull_policy: build
     stop_grace_period: 5m
-    volumes:
-      - mantle-data:/var/lib/op-geth
     environment:
-      ETH1_HTTP: ${L1_RPC}
-      SEQUENCER_CLIENT_HTTP: ${SEQUENCER}
-      ROLLUP_STATE_DUMP_PATH: ${GENESIS}
-      ROLLUP_CLIENT_HTTP: ${DTL}
-      ROLLUP_BACKEND: 'l2'
-      #ETH1_CTC_DEPLOYMENT_HEIGHT: 8
-      RETRIES: 60
-      ROLLUP_VERIFIER_ENABLE: 'true'
-      LOG_LEVEL: ${LOG_LEVEL}
-      BLOCK_SIGNER_KEY: 9f50ccaebd966113a0ef09793f8a3288cd0bb2c05d20caa3c0015b4e665f1b2d
-      BLOCK_SIGNER_ADDRESS: 0x000000b36A00872bAF079426e012Cf5Cd2A74E8b
-      ROLLUP_TIMESTAMP_REFRESH: 5s
-      ETH1_CTC_DEPLOYMENT_HEIGHT: "17577586"
-      ROLLUP_ENFORCE_FEES: 'true'
-      ROLLUP_FEE_THRESHOLD_DOWN: "1"
-      ROLLUP_FEE_THRESHOLD_UP: "4000"
-      GASPRICE: "0"
-      ETH1_SYNC_SERVICE_ENABLE: 'true'
-      ETH1_CONFIRMATION_DEPTH: "0"
-      ROLLUP_POLL_INTERVAL_FLAG: 500ms
-      ROLLUP_ENABLE_L2_GAS_POLLING: 'true'
-      RPC_ENABLE: 'true'
-      RPC_ADDR: 0.0.0.0
-      RPC_PORT: "${RPC_PORT}"
-      RPC_API: eth,net,rollup,web3
-      RPC_CORS_DOMAIN: '*'
-      RPC_VHOSTS: '*'
-      WS: 'true'
-      WS_ADDR: '0.0.0.0'
-      WS_PORT: "${WS_PORT}"
-      WS_API: eth,net,rollup,web3
-      WS_ORIGINS: '*'
-      CHAIN_ID: "5000"
-      GCMODE: full
-      IPC_DISABLE: 'true'
-      NETWORK_ID: "5000"
-      NO_USB: 'true'
-      NO_DISCOVER: 'true'
-      TARGET_GAS_LIMIT: "30000000"
-      USING_BVM: 'true'
-      SNAPSHOT: ${SNAPSHOT:-}
-      EL_EXTRAS: ${EL_EXTRAS:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - SNAPSHOT=${SNAPSHOT:-}
+      - LEGACY=${LEGACY:-false}
+      - EL_EXTRAS=${EL_EXTRAS:-}
+    volumes:
+      - opgeth-data:/var/lib/op-geth
+      - jwtsecret:/var/lib/op-geth/ee-secret
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      default:
+        aliases:
+          - mantle-geth # This allows multiple Optimism Docker stacks all connected to the same central traefik
     <<: *logging
     entrypoint:
       - docker-entrypoint.sh
       - geth
       - --datadir
       - /var/lib/op-geth
-      - --password
-      - /var/lib/op-geth/password
-      - --allow-insecure-unlock
-      - --unlock
-      - 0x000000b36A00872bAF079426e012Cf5Cd2A74E8b
-      - --mine
-      - --miner.etherbase
-      - 0x000000b36A00872bAF079426e012Cf5Cd2A74E8b
+      - --networkid
+      - ${NETWORK_ID}
+      - --authrpc.addr
+      - 0.0.0.0
+      - --authrpc.port
+      - "8551"
+      - --authrpc.jwtsecret
+      - /var/lib/op-geth/ee-secret/jwtsecret
+      - --authrpc.vhosts=*
+      - --http
+      - --http.addr
+      - 0.0.0.0
+      - --http.port
+      - ${RPC_PORT:-8545} 
+      - --http.vhosts=*
+      - --http.corsdomain=*
+      - --ws
+      - --ws.addr
+      - 0.0.0.0
+      - --ws.port
+      - ${WS_PORT:-8546}
+      - --ws.origins=*
       - --metrics
       - --metrics.expensive
       - --pprof
-      - --pprofaddr
+      - --pprof.addr
       - 0.0.0.0
+      - --syncmode
+      - full
+      - --maxpeers
+      - "0"
+      - --nodiscover
     labels:
       - traefik.enable=true
       - traefik.http.routers.${RPC_HOST:-mantle}.service=${RPC_HOST:-mantle}
@@ -112,5 +92,92 @@ services:
       - metrics.path=/debug/metrics/prometheus
       - metrics.port=6060
 
+  op-node:
+    restart: "unless-stopped"
+    build:
+      context: ./op-node
+      dockerfile: Dockerfile.binary
+      args:
+        - DOCKER_TAG=${OPNODE_DOCKER_TAG}
+    image: op-node:mantle
+    pull_policy: never
+    stop_grace_period: 1m
+    stop_signal: SIGHUP
+    environment:
+      - CL_EXTRAS=${CL_EXTRAS}
+      - OP_NODE_P2P_AGENT=mantle
+      - OP_NODE_P2P_STATIC=${OPNODE_STATIC_PEER:-}
+    volumes:
+      - jwtsecret:/var/lib/op-node/ee-secret
+      - opnode-data:/var/lib/op-node
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - ${OPNODE_P2P_PORT:-9003}:${OPNODE_P2P_PORT:-9003}/tcp
+      - ${OPNODE_P2P_PORT:-9003}:${OPNODE_P2P_PORT:-9003}/udp
+    <<: *logging
+    entrypoint:
+      - docker-entrypoint.sh
+      - op-node
+      - --log.level
+      - ${LOG_LEVEL}
+      - --da.retriever-socket
+      - ${DA_RETRIEVER}
+      - --da.graph-provider
+      - ${DA_GRAPH}
+      - --l2
+      - http://mantle-geth:8551
+      - --l2.jwt-secret
+      - /var/lib/op-node/ee-secret/jwtsecret
+      - --l2.backup-unsafe-sync-rpc
+      - ${L2_BACKUP_RPC}
+      - --sequencer.enabled
+      - "false"
+      - --l2.engine-sync
+      - "true"
+      - --l2.skip-sync-start-check
+      - "true"
+      - --p2p.sync.req-resp
+      - "true"
+      - --l1
+      - ${L1_RPC}
+      - --l1.rpckind
+      - ${L1_RPC_KIND:-basic}
+      - --verifier.l1-confs
+      - "3"
+      - --rpc.addr
+      - 0.0.0.0
+      - --rpc.port
+      - ${OPNODE_RPC_PORT:-9545}
+      - --metrics.enabled
+      - --p2p.listen.tcp
+      - ${OPNODE_P2P_PORT:-9003}
+      - --p2p.scoring.peers
+      - light
+      - --p2p.ban.peers
+      - "true"
+      - --p2p.discovery.path
+      - /var/lib/op-node/opnode_discovery_db
+      - --p2p.peerstore.path
+      - /var/lib/op-node/opnode_peerstore_db
+      - --p2p.priv.path
+      - /var/lib/op-node/opnode_p2p_priv.txt
+      - --metrics.enabled
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.${OPNODE_HOST:-opnode}.service=${OPNODE_HOST:-opnode}
+      - traefik.http.routers.${OPNODE_HOST:-opnode}.entrypoints=websecure
+      - traefik.http.routers.${OPNODE_HOST:-opnode}.rule=Host(`${OPNODE_HOST:-opnode}.${DOMAIN}`)
+      - traefik.http.routers.${OPNODE_HOST:-opnode}.tls.certresolver=letsencrypt
+      - traefik.http.routers.${OPNODE_HOST:-opnode}lb.service=${OPNODE_HOST:-opnode}
+      - traefik.http.routers.${OPNODE_HOST:-opnode}lb.entrypoints=websecure
+      - traefik.http.routers.${OPNODE_HOST:-opnode}lb.rule=Host(`${OPNODE_LB:-opnode-lb}.${DOMAIN}`)
+      - traefik.http.routers.${OPNODE_HOST:-opnode}lb.tls.certresolver=letsencrypt
+      - traefik.http.services.${OPNODE_HOST:-opnode}.loadbalancer.server.port=${OPNODE_RPC_PORT:-9545}
+      - metrics.scrape=true
+      - metrics.path=/metrics
+      - metrics.port=7300
+
 volumes:
-  mantle-data:
+  opgeth-data:
+  opnode-data:
+  jwtsecret:

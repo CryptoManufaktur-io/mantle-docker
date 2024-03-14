@@ -23,4 +23,4 @@ The `./mantled` script can be used as a quick-start:
 
 To update the software, run `./mantled update` and then `./mantled up`
 
-This is Mantle Docker v1.0.0
+This is Mantle Docker v2.0.0

@@ -1,0 +1,14 @@
+ARG DOCKER_TAG
+
+FROM mantlenetworkio/op-geth:${DOCKER_TAG}
+
+RUN apk update && apk add --no-cache ca-certificates tzdata bash su-exec aria2 zstd lz4 curl
+
+RUN mkdir -p /var/lib/op-geth/ee-secret && mkdir -p /var/lib/op-geth/snapshot
+
+# Cannot assume buildkit, hence no chmod
+COPY ./docker-entrypoint.sh /usr/local/bin/
+# Belt and suspenders
+RUN chmod -R 755 /usr/local/bin/*
+
+ENTRYPOINT ["geth"]
