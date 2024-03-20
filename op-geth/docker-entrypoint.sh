@@ -61,18 +61,22 @@ if [ -n "${SNAPSHOT}" ] && [ ! -d "/var/lib/op-geth/geth/" ]; then
   fi
   # try to find the directory
   __search_dir="geth/chaindata"
-  __base_dir="/var/lib/op-geth/"
+  __base_dir="/var/lib/op-geth"
   __found_path=$(find "$__base_dir" -type d -path "*/$__search_dir" -print -quit)
   if [ -n "$__found_path" ]; then
     __geth_dir=$(dirname "$__found_path")
     __geth_dir=${__geth_dir%/chaindata}
-    if [ "${__geth_dir}" = "${__base_dir}geth" ]; then
+    if [ "${__geth_dir}" = "${__base_dir}/geth" ]; then
      echo "Snapshot extracted into ${__geth_dir}/chaindata"
     else
       echo "Found a geth directory at ${__geth_dir}, moving it."
-      mv "$__geth_dir" "$__base_dir"
+      mv "$__geth_dir" "${__base_dir}/"
       rm -rf "$__geth_dir"
     fi
+  fi
+  if [ -d "${__base_dir}/chaindata" ]; then # Very flat snapshot
+    mkdir -p ${__base_dir}/geth
+    mv ${__base_dir}/chaindata ${__base_dir}/geth/
   fi
   if [[ ! -d /var/lib/op-geth/geth/chaindata ]]; then
     echo "Chaindata isn't in the expected location."
