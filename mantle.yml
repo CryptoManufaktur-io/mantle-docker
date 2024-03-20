@@ -15,12 +15,11 @@ services:
       args:
         - DOCKER_TAG=${OPGETH_DOCKER_TAG}
     image: op-geth:mantle
-    pull_policy: build
+    pull_policy: never
     stop_grace_period: 5m
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - SNAPSHOT=${SNAPSHOT:-}
-      - LEGACY=${LEGACY:-false}
       - EL_EXTRAS=${EL_EXTRAS:-}
     volumes:
       - opgeth-data:/var/lib/op-geth
@@ -38,6 +37,9 @@ services:
       - /var/lib/op-geth
       - --networkid
       - ${NETWORK_ID}
+      - --snapshot=false
+      - --rollup.sequencerhttp
+      - ${SEQUENCER}
       - --authrpc.addr
       - 0.0.0.0
       - --authrpc.port
@@ -106,7 +108,7 @@ services:
     environment:
       - CL_EXTRAS=${CL_EXTRAS}
       - OP_NODE_P2P_AGENT=mantle
-      - OP_NODE_P2P_STATIC=${OPNODE_STATIC_PEER:-}
+      - NETWORK_ID=${NETWORK_ID}
     volumes:
       - jwtsecret:/var/lib/op-node/ee-secret
       - opnode-data:/var/lib/op-node
@@ -120,16 +122,25 @@ services:
       - op-node
       - --log.level
       - ${LOG_LEVEL}
-      - --da.retriever-socket
-      - ${DA_RETRIEVER}
-      - --da.graph-provider
-      - ${DA_GRAPH}
+      - --l1
+      - ${L1_RPC}
+      - --l1.rpckind
+      - ${L1_RPC_KIND:-basic}
+      - --rpc.addr
+      - 0.0.0.0
+      - --rpc.port
+      - ${OPNODE_RPC_PORT:-9545}
       - --l2
       - http://mantle-geth:8551
       - --l2.jwt-secret
       - /var/lib/op-node/ee-secret/jwtsecret
       - --l2.backup-unsafe-sync-rpc
       - ${L2_BACKUP_RPC}
+      - --rollup.config
+      - /var/lib/op-node/config/rollup.json
+      - --da.indexer-enable
+      - --da.indexer-socket
+      - ${DA_INDEXER}
       - --sequencer.enabled
       - "false"
       - --l2.engine-sync
@@ -138,19 +149,13 @@ services:
       - "true"
       - --p2p.sync.req-resp
       - "true"
-      - --l1
-      - ${L1_RPC}
-      - --l1.rpckind
-      - ${L1_RPC_KIND:-basic}
       - --verifier.l1-confs
       - "3"
-      - --rpc.addr
-      - 0.0.0.0
-      - --rpc.port
-      - ${OPNODE_RPC_PORT:-9545}
       - --metrics.enabled
       - --p2p.listen.tcp
       - ${OPNODE_P2P_PORT:-9003}
+      - --p2p.static
+      - ${OPNODE_STATIC_PEERS:-}
       - --p2p.scoring.peers
       - light
       - --p2p.ban.peers

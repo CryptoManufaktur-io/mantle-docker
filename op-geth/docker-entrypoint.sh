@@ -66,9 +66,13 @@ if [ -n "${SNAPSHOT}" ] && [ ! -d "/var/lib/op-geth/geth/" ]; then
   if [ -n "$__found_path" ]; then
     __geth_dir=$(dirname "$__found_path")
     __geth_dir=${__geth_dir%/chaindata}
-    echo "Found a geth directory at ${__geth_dir}, moving it."
-    mv "$__geth_dir" "$__base_dir"
-    rm -rf "$__geth_dir"
+    if [ "${__geth_dir}" = "${__base_dir}/geth" ]; then
+     echo "Snapshot extracted into ${__geth_dir}/chaindata"
+    else
+      echo "Found a geth directory at ${__geth_dir}, moving it."
+      mv "$__geth_dir" "$__base_dir"
+      rm -rf "$__geth_dir"
+    fi
   fi
   if [[ ! -d /var/lib/op-geth/geth/chaindata ]]; then
     echo "Chaindata isn't in the expected location."
@@ -76,21 +80,6 @@ if [ -n "${SNAPSHOT}" ] && [ ! -d "/var/lib/op-geth/geth/" ]; then
   fi
 fi
 
-# Detect existing DB; use PBSS if fresh
-if [ -d "/var/lib/op-geth/geth/chaindata/" ]; then
-  __pbss=""
-else
-  echo "Choosing PBSS for fresh sync"
-  __pbss="--state.scheme path"
-fi
-
-# Run with legacy l2geth?
-if [ "${LEGACY}" = true ]; then
-  __legacy="--rollup.historicalrpc http://l2geth:8545"
-else
-  __legacy=""
-fi
-
 # Word splitting is desired for the command line parameters
 # shellcheck disable=SC2086
-exec "$@" ${__verbosity} ${__pbss} ${__legacy} ${EL_EXTRAS}
+exec "$@" ${__verbosity} ${EL_EXTRAS}

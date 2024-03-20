@@ -2,7 +2,7 @@ ARG DOCKER_TAG
 
 FROM mantlenetworkio/op-node:${DOCKER_TAG}
 
-RUN apk update && apk add --no-cache ca-certificates tzdata bash su-exec
+RUN apk update && apk add --no-cache ca-certificates tzdata bash su-exec curl
 
 RUN mkdir -p /var/lib/op-node/ee-secret
 
