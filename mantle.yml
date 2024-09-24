@@ -29,46 +29,48 @@ services:
       default:
         aliases:
           - mantle-geth # This allows multiple Optimism Docker stacks all connected to the same central traefik
+    ports:
+      - ${OPGETH_P2P_PORT:-30300}:${OPGETH_P2P_PORT:-30300}/tcp
+      - ${OPGETH_P2P_PORT:-30300}:${OPGETH_P2P_PORT:-30300}/udp
     <<: *logging
     entrypoint:
       - docker-entrypoint.sh
       - geth
-      - --datadir
-      - /var/lib/op-geth
-      - --networkid
-      - ${NETWORK_ID}
+      - --datadir=/var/lib/op-geth
+      - --syncmode=full
       - --snapshot=false
-      - --rollup.sequencerhttp
-      - ${SEQUENCER}
-      - --authrpc.addr
-      - 0.0.0.0
-      - --authrpc.port
-      - "8551"
-      - --authrpc.jwtsecret
-      - /var/lib/op-geth/ee-secret/jwtsecret
+      - --networkid=${NETWORK_ID}
+      - --rollup.sequencerhttp=${SEQUENCER}
+      # CL Engine API
+      - --authrpc.addr=0.0.0.0
+      - --authrpc.port=8551
       - --authrpc.vhosts=*
+      - --authrpc.jwtsecret=/var/lib/op-geth/ee-secret/jwtsecret
+      # HTTP/RPC
       - --http
-      - --http.addr
-      - 0.0.0.0
-      - --http.port
-      - ${RPC_PORT:-8545} 
+      - --http.addr=0.0.0.0
+      - --http.port=${RPC_PORT:-8545} 
       - --http.vhosts=*
+      - --http.api=eth,web3,net
       - --http.corsdomain=*
+      # Websocket
       - --ws
-      - --ws.addr
-      - 0.0.0.0
-      - --ws.port
-      - ${WS_PORT:-8546}
+      - --ws.addr=0.0.0.0
+      - --ws.port=${WS_PORT:-8546}
       - --ws.origins=*
+      - --ws.api=eth,web3,net
+      # P2P
+      - --port=$OPGETH_P2P_PORT
+      - --nodiscover
+      # Metrics
       - --metrics
+      - --metrics.addr=0.0.0.0
+      - --metrics.port=6060
       - --metrics.expensive
+      # Others
       - --pprof
-      - --pprof.addr
-      - 0.0.0.0
-      - --syncmode
-      - full
-      - --maxpeers
-      - "0"
+      - --pprof.addr=0.0.0.0
+      - --maxpeers="0"
       - --nodiscover
     labels:
       - traefik.enable=true
@@ -121,52 +123,30 @@ services:
     entrypoint:
       - docker-entrypoint.sh
       - op-node
-      - --log.level
-      - ${LOG_LEVEL}
-      - --l1
-      - ${L1_RPC}
-      - --l1.rpckind
-      - ${L1_RPC_KIND:-basic}
-      - --rpc.addr
-      - 0.0.0.0
-      - --rpc.port
-      - ${OPNODE_RPC_PORT:-9545}
-      - --l2
-      - http://mantle-geth:8551
-      - --l2.jwt-secret
-      - /var/lib/op-node/ee-secret/jwtsecret
-      - --l2.backup-unsafe-sync-rpc
-      - ${L2_BACKUP_RPC}
-      - --rollup.config
-      - /var/lib/op-node/config/rollup.json
+      - --log.level=${LOG_LEVEL}
+      - --l1=${L1_RPC}
+      - --l1.rpckind=${L1_RPC_KIND:-basic}
+      - --rpc.addr=0.0.0.0
+      - --rpc.port=${OPNODE_RPC_PORT:-9545}
+      - --l2=http://mantle-geth:8551
+      - --l2.jwt-secret=/var/lib/op-node/ee-secret/jwtsecret
+      - --l2.backup-unsafe-sync-rpc=${L2_BACKUP_RPC}
+      - --rollup.config=/var/lib/op-node/config/rollup.json
       - --da.indexer-enable
-      - --da.indexer-socket
-      - ${DA_INDEXER}
-      - --sequencer.enabled
-      - "false"
-      - --l2.engine-sync
-      - "true"
-      - --l2.skip-sync-start-check
-      - "true"
-      - --p2p.sync.req-resp
-      - "true"
-      - --verifier.l1-confs
-      - "3"
+      - --da.indexer-socket=${DA_INDEXER}
+      - --sequencer.enabled="false"
+      - --l2.engine-sync="true"
+      - --l2.skip-sync-start-check="true"
+      - --p2p.sync.req-resp="true"
+      - --verifier.l1-confs="3"
       - --metrics.enabled
-      - --p2p.listen.tcp
-      - ${OPNODE_P2P_PORT:-9003}
-      - --p2p.static
-      - ${OPNODE_STATIC_PEERS:-}
-      - --p2p.scoring.peers
-      - light
-      - --p2p.ban.peers
-      - "true"
-      - --p2p.discovery.path
-      - /var/lib/op-node/opnode_discovery_db
-      - --p2p.peerstore.path
-      - /var/lib/op-node/opnode_peerstore_db
-      - --p2p.priv.path
-      - /var/lib/op-node/opnode_p2p_priv.txt
+      - --p2p.listen.tcp=${OPNODE_P2P_PORT:-9003}
+      - --p2p.static=${OPNODE_STATIC_PEERS:-}
+      - --p2p.scoring.peers=light
+      - --p2p.ban.peers="true"
+      - --p2p.discovery.path=/var/lib/op-node/opnode_discovery_db
+      - --p2p.peerstore.path=/var/lib/op-node/opnode_peerstore_db
+      - --p2p.priv.path=/var/lib/op-node/opnode_p2p_priv.txt
       - --metrics.enabled
     labels:
       - traefik.enable=true
