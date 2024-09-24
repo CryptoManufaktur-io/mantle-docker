@@ -70,7 +70,7 @@ services:
       # Others
       - --pprof
       - --pprof.addr=0.0.0.0
-      - --maxpeers="0"
+      - --maxpeers=0
       - --nodiscover
     labels:
       - traefik.enable=true
@@ -134,16 +134,16 @@ services:
       - --rollup.config=/var/lib/op-node/config/rollup.json
       - --da.indexer-enable
       - --da.indexer-socket=${DA_INDEXER}
-      - --sequencer.enabled="false"
-      - --l2.engine-sync="true"
-      - --l2.skip-sync-start-check="true"
-      - --p2p.sync.req-resp="true"
-      - --verifier.l1-confs="3"
+      - --sequencer.enabled=false
+      - --l2.engine-sync=true
+      - --l2.skip-sync-start-check=true
+      - --p2p.sync.req-resp=true
+      - --verifier.l1-confs=3
       - --metrics.enabled
       - --p2p.listen.tcp=${OPNODE_P2P_PORT:-9003}
       - --p2p.static=${OPNODE_STATIC_PEERS:-}
       - --p2p.scoring.peers=light
-      - --p2p.ban.peers="true"
+      - --p2p.ban.peers=true
       - --p2p.discovery.path=/var/lib/op-node/opnode_discovery_db
       - --p2p.peerstore.path=/var/lib/op-node/opnode_peerstore_db
       - --p2p.priv.path=/var/lib/op-node/opnode_p2p_priv.txt
