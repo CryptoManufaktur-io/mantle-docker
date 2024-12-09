@@ -1,3 +1,7 @@
+# Archived repo
+
+Please use [Optimism Docker](https://github.com/CryptoManufaktur-io/optimism-docker) for Mantle RPC nodes
+
 # Overview
 
 Docker Compose for Mantle rollup
